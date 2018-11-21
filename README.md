@@ -7,6 +7,8 @@
 
 ## 路由 API 文檔
 
+</br>
+
 ### 1、註冊
 
 #### URL:
@@ -38,6 +40,8 @@ PUT
 }
 ```
 
+</br>
+
 ### 2、登入
 
 #### URL:
@@ -67,6 +71,8 @@ POST
   userId: "5bf5202a2aa7f704f28e99ca"
 }
 ```
+
+</br>
 
 ### 3、取得所有文章(含分頁控制)
 
@@ -109,6 +115,8 @@ fetch("http://localhost:8080/feed/posts?page=1", {
 }
 ```
 
+</br>
+
 ### 4、取得單一文章
 
 #### URL:
@@ -148,6 +156,8 @@ fetch("http://localhost:8080/feed/post/5bf536bce1e0800e978798da", {
   post: post
 }
 ```
+
+</br>
 
 ### 5、新增文章
 
@@ -196,6 +206,8 @@ fetch(url, {
 }
 ```
 
+</br>
+
 ### 6、更新文章
 
 #### URL:
@@ -239,6 +251,8 @@ fetch("http://localhost:8080/feed/post/5bf536bce1e0800e978798da", {
   post: result
 }
 ```
+
+</br>
 
 ### 7、刪除文章
 
