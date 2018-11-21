@@ -67,3 +67,6 @@ typings/
 .serverless
 
 public/
+
+# images
+images/

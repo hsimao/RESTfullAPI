@@ -21,7 +21,7 @@ exports.getPosts = (req, res, next) => {
     })
     .then(posts => {
       res.status(200).json({
-        message: "Fetched posts successfully.",
+        message: "成功取得文章資料.",
         posts: posts,
         totalItems: totalItems
       });
