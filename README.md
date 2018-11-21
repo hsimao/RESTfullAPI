@@ -38,7 +38,7 @@ PUT
 }
 ```
 
-### 2、登入
+### 2、登入
 
 #### URL:
 
@@ -68,7 +68,7 @@ POST
 }
 ```
 
-### 3、取得所有文章(含分頁控制)
+### 3、取得所有文章(含分頁控制)
 
 #### URL:
 
@@ -92,7 +92,7 @@ GET
 #### 請求範例:
 
 ```javascript
-fetch("http://localhost:8080/feed/posts?page=1, {
+fetch("http://localhost:8080/feed/posts?page=1", {
   headers: {
     Authorization: "Bearer " + token
   }
@@ -109,7 +109,7 @@ fetch("http://localhost:8080/feed/posts?page=1, {
 }
 ```
 
-### 4、取得單一文章
+### 4、取得單一文章
 
 #### URL:
 
@@ -149,7 +149,7 @@ fetch("http://localhost:8080/feed/post/5bf536bce1e0800e978798da", {
 }
 ```
 
-### 5、新增文章
+### 5、新增文章
 
 #### URL:
 
@@ -196,7 +196,7 @@ fetch(url, {
 }
 ```
 
-### 6、更新文章
+### 6、更新文章
 
 #### URL:
 
@@ -240,7 +240,7 @@ fetch("http://localhost:8080/feed/post/5bf536bce1e0800e978798da", {
 }
 ```
 
-### 7、刪除文章
+### 7、刪除文章
 
 #### URL:
 
