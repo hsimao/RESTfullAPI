@@ -14,8 +14,8 @@ exports.getPosts = async (req, res, next) => {
   try {
     const totalItems = await Post.find().countDocuments();
     const posts = await Post.find()
-    .skip((currentPage - 1) * perPage)
-    .limit(perPage);
+      .skip((currentPage - 1) * perPage)
+      .limit(perPage);
 
     res.status(200).json({
       message: "成功取得文章資料.",
@@ -28,10 +28,9 @@ exports.getPosts = async (req, res, next) => {
     }
     next(err);
   }
-
 };
 // Created Post 新增文章
-exports.createPost = (req, res, next) => {
+exports.createPost = async (req, res, next) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     // 自訂錯誤訊息，傳遞給自訂的錯誤處理中間件
@@ -56,58 +55,47 @@ exports.createPost = (req, res, next) => {
     imageUrl: imageUrl,
     creator: req.userId
   });
-  post
-    .save()
-    .then(result => {
-      // 從資料庫取得用戶資料
-      return User.findById(req.userId);
-    })
-    .then(user => {
-      creator = user;
-      // 更新用戶文章記錄
-      user.posts.push(post);
-      return user.save();
-    })
-    .then(result => {
-      res.status(201).json({
-        message: "文章創建成功!",
-        post: post,
-        creator: { _id: creator._id, name: creator.name }
-      });
-    })
-    .catch(err => {
-      // 如果不是重上面自訂的錯誤422, 就給預設值500錯誤狀態：內部服務器錯誤
-      if (!err.statusCode) {
-        err.statusCode = 500;
-      }
-      // 傳遞下去，到下一個錯誤處理中間件 app.js檔案內的 /feed 路由底下
-      next(err);
+
+  try {
+    await post.save();
+    const user = await User.findById(req.userId);
+    user.posts.push(post);
+    await user.save();
+    res.status(201).json({
+      message: "文章創建成功!",
+      post: post,
+      creator: { _id: user._id, name: user.name }
     });
+  } catch (err) {
+    if (!err.statusCode) {
+      err.statusCode = 500;
+    }
+    next(err);
+  }
 };
 
 // Get Post 取得單一文章
-exports.getPost = (req, res, next) => {
+exports.getPost = async (req, res, next) => {
   const postId = req.params.postId;
   // 用postId搜尋資料庫post文章
-  Post.findById(postId)
-    .then(post => {
-      if (!post) {
-        const error = new Error("沒有找到該篇文章");
-        error.statusCode = 404;
-        throw error;
-      }
-      res.status(200).json({ message: "已取得文章資料", post: post });
-    })
-    .catch(err => {
-      if (!err.statusCode) {
-        err.statusCode = 500;
-      }
-      next(err);
-    });
+  const post = await Post.findById(postId);
+  try {
+    if (!post) {
+      const error = new Error("沒有找到該篇文章");
+      error.statusCode = 404;
+      throw error;
+    }
+    res.status(200).json({ message: "已取得文章資料", post: post });
+  } catch (err) {
+    if (!err.statusCode) {
+      err.statusCode = 500;
+    }
+    next(err);
+  }
 };
 
 // PUT/Update Post 更新文章
-exports.updatePost = (req, res, next) => {
+exports.updatePost = async (req, res, next) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     // 自訂錯誤訊息，傳遞給自訂的錯誤處理中間件
@@ -131,79 +119,65 @@ exports.updatePost = (req, res, next) => {
   }
 
   // 更新資料庫
-  Post.findById(postId)
-    .then(post => {
-      if (!post) {
-        const error = new Error("沒有找到該篇文章");
-        error.statusCode = 404;
-        throw error;
-      }
-
-      // 檢查當前使用者是否為本文章的創建者
-      if (post.creator.toString() !== req.userId) {
-        const error = new Error("非文章本人，無法更新");
-        error.statusCode = 403;
-        throw error;
-      }
-
-      // 如果這次傳進來的路徑跟舊的不相符，就將本地舊的圖片檔案刪除
-      if (imageUrl !== post.imageUrl) {
-        clearImage(post.imageUrl);
-      }
-      post.title = title;
-      post.imageUrl = imageUrl;
-      post.content = content;
-      return post.save();
-    })
-    .then(result => {
-      res.status(200).json({ message: "文章已更新！", post: result });
-    })
-    .catch(err => {
-      if (!err.statusCode) {
-        err.statusCode = 500;
-      }
-      next(err);
-    });
+  try {
+    const post = await Post.findById(postId);
+    if (!post) {
+      const error = new Error("沒有找到該篇文章");
+      error.statusCode = 404;
+      throw error;
+    }
+    // 檢查當前使用者是否為本文章的創建者
+    if (post.creator.toString() !== req.userId) {
+      const error = new Error("非文章本人，無法更新");
+      error.statusCode = 403;
+      throw error;
+    }
+    // 如果這次傳進來的路徑跟舊的不相符，就將本地舊的圖片檔案刪除
+    if (imageUrl !== post.imageUrl) {
+      clearImage(post.imageUrl);
+    }
+    post.title = title;
+    post.imageUrl = imageUrl;
+    post.content = content;
+    await post.save();
+    res.status(200).json({ message: "文章已更新！", post: post });
+  } catch (err) {
+    if (!err.statusCode) {
+      err.statusCode = 500;
+    }
+    next(err);
+  }
 };
 
 // DELETE 刪除文章
-exports.deletePost = (req, res, next) => {
+exports.deletePost = async (req, res, next) => {
   const postId = req.params.postId;
-  Post.findById(postId)
-    .then(post => {
-      if (!post) {
-        const error = new Error("沒有找到該篇文章");
-        error.statusCode = 404;
-        throw error;
-      }
 
-      // 檢查當前使用者是否為本文章的創建者
-      if (post.creator.toString() !== req.userId) {
-        const error = new Error("非文章本人，無法刪除");
-        error.statusCode = 403;
-        throw error;
-      }
-      clearImage(post.imageUrl);
-      return Post.findByIdAndRemove(postId);
-    })
-    // 找到文章使用者，刪除user資料內posts中的文章id
-    .then(result => {
-      return User.findById(req.userId);
-    })
-    .then(user => {
-      user.posts.pull(postId);
-      return user.save();
-    })
-    .then(result => {
-      console.log(result);
-      res.status(200).json({ message: "文章已刪除！" });
-    })
-    .catch(err => {
-      if (!err.statusCode) {
-        err.statusCode = 500;
-      }
-      next(err);
-    });
+  try {
+    const post = await Post.findById(postId);
+    if (!post) {
+      const error = new Error("沒有找到該篇文章");
+      error.statusCode = 404;
+      throw error;
+    }
+    // 檢查當前使用者是否為本文章的創建者
+    if (post.creator.toString() !== req.userId) {
+      const error = new Error("非文章本人，無法刪除");
+      error.statusCode = 403;
+      throw error;
+    }
+    clearImage(post.imageUrl);
+    await Post.findByIdAndRemove(postId);
+    const user = await User.findById(req.userId);
+    user.posts.pull(postId);
+    await user.save();
+    res.status(200).json({ message: "文章已刪除！" });
+  } catch (err) {
+    if (!err.statusCode) {
+      err.statusCode = 500;
+    }
+    next(err);
+  }
 };
 
 // 刪除本地圖片方法
