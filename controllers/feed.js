@@ -3,6 +3,7 @@ const path = require("path");
 
 const { validationResult } = require("express-validator/check");
 
+const io = require("../socket");
 const Post = require("../models/post");
 const User = require("../models/user");
 
@@ -14,6 +15,8 @@ exports.getPosts = async (req, res, next) => {
   try {
     const totalItems = await Post.find().countDocuments();
     const posts = await Post.find()
+      .populate("creator")
+      .sort({ createdAt: -1 }) // 排序，新文章在最上方
       .skip((currentPage - 1) * perPage)
       .limit(perPage);
 
@@ -61,6 +64,11 @@ exports.createPost = async (req, res, next) => {
     const user = await User.findById(req.userId);
     user.posts.push(post);
     await user.save();
+    io.getIO().emit("posts", {
+      action: "create",
+      post: { ...post._doc, creator: { _id: req.userId, name: user.name } }
+    });
+
     res.status(201).json({
       message: "文章創建成功!",
       post: post,
@@ -120,14 +128,14 @@ exports.updatePost = async (req, res, next) => {
 
   // 更新資料庫
   try {
-    const post = await Post.findById(postId);
+    const post = await Post.findById(postId).populate("creator");
     if (!post) {
       const error = new Error("沒有找到該篇文章");
       error.statusCode = 404;
       throw error;
     }
     // 檢查當前使用者是否為本文章的創建者
-    if (post.creator.toString() !== req.userId) {
+    if (post.creator._id.toString() !== req.userId) {
       const error = new Error("非文章本人，無法更新");
       error.statusCode = 403;
       throw error;
@@ -139,7 +147,8 @@ exports.updatePost = async (req, res, next) => {
     post.title = title;
     post.imageUrl = imageUrl;
     post.content = content;
-    await post.save();
+    const result = await post.save();
+    io.getIO().emit("posts", { action: "update", post: result });
     res.status(200).json({ message: "文章已更新！", post: post });
   } catch (err) {
     if (!err.statusCode) {
@@ -171,6 +180,7 @@ exports.deletePost = async (req, res, next) => {
     const user = await User.findById(req.userId);
     user.posts.pull(postId);
     await user.save();
+    io.getIO().emit("posts", { action: "delete", post: postId });
     res.status(200).json({ message: "文章已刪除！" });
   } catch (err) {
     if (!err.statusCode) {

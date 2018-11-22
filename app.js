@@ -78,7 +78,9 @@ mongoose
     }
   )
   .then(result => {
-    app.listen(8080, () => {
+    const server = app.listen(8080);
+    const io = require("./socket").init(server);
+    io.on("connection", socket => {
       console.log("DB is connect!, 8080 port is start!");
     });
   })
